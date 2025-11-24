@@ -1,0 +1,47 @@
+Size of 500.perlbench_r built with /usr/lib/llvm-11/: 2036166
+Size of 500.perlbench_r built with /home/tshu/Documents/pldi20ae-final/build/: 2033598
+
+Size of 502.gcc_r built with /usr/lib/llvm-11/: 9534142
+Size of 502.gcc_r built with /home/tshu/Documents/pldi20ae-final/build/: 9540647
+
+Size of 505.mcf_r built with /usr/lib/llvm-11/: 19893
+Size of 505.mcf_r built with /home/tshu/Documents/pldi20ae-final/build/: 19872
+
+Size of 508.namd_r built with /usr/lib/llvm-11/: 679363
+Size of 508.namd_r built with /home/tshu/Documents/pldi20ae-final/build/: 681431
+
+Size of 510.parest_r built with /usr/lib/llvm-11/: 9595707
+Size of 510.parest_r built with /home/tshu/Documents/pldi20ae-final/build/: 9596095
+
+Size of 511.povray_r built with /usr/lib/llvm-11/: 20297
+Size of 511.povray_r built with /home/tshu/Documents/pldi20ae-final/build/: 20282
+
+Size of 519.lbm_r built with /usr/lib/llvm-11/: 16139
+Size of 519.lbm_r built with /home/tshu/Documents/pldi20ae-final/build/: 16048
+
+Size of 520.omnetpp_r built with /usr/lib/llvm-11/: 1991475
+Size of 520.omnetpp_r built with /home/tshu/Documents/pldi20ae-final/build/: 1992264
+
+Size of 523.xalancbmk_r built with /usr/lib/llvm-11/: 4761451
+Size of 523.xalancbmk_r built with /home/tshu/Documents/pldi20ae-final/build/: 4758680
+
+Size of 525.x264_r built with /usr/lib/llvm-11/: 20268
+Size of 525.x264_r built with /home/tshu/Documents/pldi20ae-final/build/: 20253
+
+Size of 526.blender_r built with /usr/lib/llvm-11/: 9855358
+Size of 526.blender_r built with /home/tshu/Documents/pldi20ae-final/build/: 9854413
+
+Size of 531.deepsjeng_r built with /usr/lib/llvm-11/: 76945
+Size of 531.deepsjeng_r built with /home/tshu/Documents/pldi20ae-final/build/: 77022
+
+Size of 538.imagick_r built with /usr/lib/llvm-11/: 20268
+Size of 538.imagick_r built with /home/tshu/Documents/pldi20ae-final/build/: 20253
+
+Size of 541.leela_r built with /usr/lib/llvm-11/: 234600
+Size of 541.leela_r built with /home/tshu/Documents/pldi20ae-final/build/: 234980
+
+Size of 544.nab_r built with /usr/lib/llvm-11/: 170371
+Size of 544.nab_r built with /home/tshu/Documents/pldi20ae-final/build/: 170399
+
+Size of 557.xz_r built with /usr/lib/llvm-11/: 177685
+Size of 557.xz_r built with /home/tshu/Documents/pldi20ae-final/build/: 178689

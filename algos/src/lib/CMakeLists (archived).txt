@@ -1,0 +1,27 @@
+add_library(LLVMFMObjects OBJECT
+    Transforms/IPO/LCS_FM.cpp
+    Transforms/IPO/ILP_FM.cpp
+    Transforms/IPO/SALSSA_FM.cpp
+    Transforms/IPO/FMObjFileSize.hpp
+)
+set_property(TARGET LLVMFMObjects PROPERTY POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_STANDARD 14)
+
+add_llvm_pass_plugin(LLVMFM
+    Transforms/IPO/FMLoader.cpp
+    LINK_LIBS LLVMFMObjects
+    NO_INSTALL_RPATH
+)
+
+# Uncomment the following to link CPLEX libraries
+# target_include_directories(LLVMFM PRIVATE ${CPLEX_INCLUDE_DIR})
+# target_link_libraries(LLVMFM PRIVATE
+#     ${ILOCPLEX_LIBRARY}
+#     ${CPLEX_LIBRARY}
+#     ${CONCERT_LIBRARY}
+#     m pthread dl ncurses
+# )
+
+if(APPLE)
+    target_link_options(LLVMFM PRIVATE -Wl,-undefined,dynamic_lookup)
+endif()
