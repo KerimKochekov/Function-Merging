@@ -20,13 +20,13 @@ libfuzzer-11-dev lldb-11 lld-11 libc++-11-dev libc++abi-11-dev libomp-11-dev -y
 
 Set `EXPER` to the path to the experiment directory containing benchmark ISO (`cpu2017-1_0_5.iso`), and set `LLVM_DIR` to the LLVM installation location. For instance, 
 ```
-export EXPER=/home/tshu/Documents/Function-Merging/bench/
+export EXPER="$PWD/bench"
 export LLVM_DIR=/usr/lib/llvm-11/
 ```
 
 Change directory to benchmark folder, then mount the ISO file as below.
 ```
-cd bench
+cd $EXPER
 mkdir mnt
 sudo mount -t iso9660 -o ro,exec,loop cpu2017-1_0_5.iso $EXPER/mnt
 $EXPER/mnt/install.sh
@@ -54,7 +54,7 @@ bash build.sh $LLVM_DIR "-O0" 500.perlbench_r 502.gcc_r 505.mcf_r 508.namd_r 510
 The branch alignment merger has been registered as a pass. To compile the pass, suppose LLVM is installed under `/usr/lib/llvm-11` directory, 
 ```
 cd algos
-mkdir build
+mkdir -p build
 cd build
 cmake ../src -DLLVM_ROOT="/usr/lib/llvm-11"
 // alternatively, may use '-DLLVM_DIR:PATH' flag
@@ -64,51 +64,41 @@ cd ..
 ```
 and three `.so` objects will be generated under `algos/build/lib/` folder.
 
-Set `SALSSA_PATH`, `LCS_PATH`, and `ILP_PATH` to the path of the shared objects, e.g., 
+Set `SALSSA_PATH`, and `LCS_PATH` to the path of the shared objects, e.g., 
 ```
-export SALSSA_PATH=/home/tshu/Documents/Function-Merging/algos/build/lib/libSALSSA_FM.so
-export LCS_PATH=/home/tshu/Documents/Function-Merging/algos/build/lib/libLCS_FM.so
-export ILP_PATH=/home/tshu/Documents/Function-Merging/algos/build/lib/libILP_FM.so
+export SALSSA_PATH="$PWD/build/lib/libSALSSA_FM.so"
+export LCS_PATH="$PWD/build/lib/libLCS_FM.so
 ```
 
 To generate the IR for a program, use clang-11 to compile
 ```
-clang++-11 -O0 -emit-llvm -S basic.cpp -o basic.ll
+clang++-11 -O0 -emit-llvm -S samples/branch.cpp -o samples/branch.ll
 ```
 
 To run the legacy passes under the `algos` directory, use commands
 ```
-opt-11 --enable-new-pm=false -load $SALSSA_PATH -salssa-fm -S samples/basic.ll
-opt-11 --enable-new-pm=false -load $LCS_PATH -lcs-fm -S samples/basic.ll
-opt-11 --enable-new-pm=false -load $ILP_PATH -ilp-fm -S samples/basic.ll
+opt-11 --enable-new-pm=false -load $SALSSA_PATH -salssa-fm -S samples/branch.ll
+opt-11 --enable-new-pm=false -load $LCS_PATH -lcs-fm -S samples/branch.ll
 ```
-where `-salssa-fm` calls the original SALSSA merger, `-lcs-fm` calls the merger with optimal branch order given by DP (TODO), and `-ilp-fm` calls the merger with optimal branch order given by ILP solver (TODO).
-Add flags `-salssa-fm-verbose`, `-lcs-fm-verbose`, or `-ilp-fm-verbose` to output debug information for corresponding algorithms.
-Note that there will be runtime error in the absence of some debug tool packages. Modify all the `dump` to corresponding `errs` statements to resolve runtime errors.
-
-```
-opt-11 --enable-new-pm=false -load $SALSSA_PATH -salssa-fm -salssa-fm-verbose -S samples/basic.ll
-opt-11 --enable-new-pm=false -load $LCS_PATH -lcs-fm -lcs-fm-verbose -S samples/basic.ll
-opt-11 --enable-new-pm=false -load $LCS_PATH -ilp-fm -ilp-fm-verbose -S samples/basic.ll
-```
+where `-salssa-fm` calls the original SALSSA merger, `-lcs-fm` calls the merger with optimal branch order given by DP.
 
 ## Compile SPEC with Funciton Merging Passes
 
 To run the optimization pass and link the IRs, use the following script.
 ```
-export EXPER=/home/tshu/Documents/Function-Merging/bench/
+cd ..
+export EXPER="$PWD/bench/"
 export LLVM_DIR=/usr/lib/llvm-11/
-export SALSSA_PATH=/home/tshu/Documents/Function-Merging/algos/build/lib/libSALSSA_FM.so
-export LCS_PATH=/home/tshu/Documents/Function-Merging/algos/build/lib/libLCS_FM.so
-export ILP_PATH=/home/tshu/Documents/Function-Merging/algos/build/lib/libILP_FM.so
+export SALSSA_PATH="$PWD/algos/build/lib/libSALSSA_FM.so"
+export LCS_PATH="$PWD/algos/build/lib/libLCS_FM.so"
 
-cd bench/spec2017
+cd $EXPER/spec2017
 bash compile_opt_link.sh $LLVM_DIR "-O0" $SALSSA_PATH "-salssa-fm" 500.perlbench_r
 ```
 
 ## Clang Suite with Our Function Merging Passes
 
-Under `algos/` folder, use command `sh build-all.sh X` to build the clang suite (replace `X` with the number of threads allowed, preferably 8~16). The clang suite with modified function merging passes will be built under `algos/build/`.
+Under `algos/pldi20ae` folder, use command `sh build-all.sh X` to build the clang suite (replace `X` with the number of threads allowed, preferably 8~16). The clang suite with modified function merging passes will be built under `pldi20ae/build/`.
 
 The modified clang suite has different flags that supports four types of function merging actions: no function merging (baseline), FMSA, SALSSA, and LCS. The details of the different flags and built options are specified in `bench/Makefile.lto.default`.
 
