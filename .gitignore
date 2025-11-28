@@ -11,3 +11,12 @@ bench/-O0/
 bench/-O1/
 bench/-O3/
 bench/-Os_-fno-vectorize_-fno-slp-vectorize_-fno-unroll-loops/
+
+O0/
+O0.zip
+Os/
+Os.zip
+Oz/
+Oz.zip
+cpu2017-1_0_5.iso
+spec2017/
