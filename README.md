@@ -102,6 +102,10 @@ TODO:
 // change .so to .dylib on Mac OS
 $OPT -load ./function-merging-branch-reord/build/libFunctionMergingBranchReord.so -function-merging-branch-reord  samples/input_for_hello.ll {-o <output>.ll | -disable-output}
 $OPT -load ./function-merging-branch-reord/build/libFunctionMergingBranchReord.so -function-merging-branch-reord  samples/input_for_hello.ll -disable-output
+
+
+./run.sh linked -O0 ll 500.perlbench_r
+./run.sh linked -O0 bc 500.perlbench_r
 ```
 
 

@@ -12,14 +12,14 @@ process_argument() {
 
   # Execute the runcpu command
   if [[ "$arg" == "620.omnetpp_s" || "$arg" == "520.omnetpp_r" ||  "$arg" == "508.namd_r" || "$arg" == "511.povray_r" ]]; then
-    runcpu --config="${flags_underscored}cpp14.cfg" --tune=base --action=build "$arg"
+    runcpu --config="${flags_underscored}_${format}_cpp14.cfg" --tune=base --action=build "$arg"
   elif [[ "$arg" == "510.parest_r" ]]; then
-    runcpu --config="${flags_underscored}cpp03.cfg" --tune=base --action=build "$arg"
+    runcpu --config="${flags_underscored}_${format}_cpp03.cfg" --tune=base --action=build "$arg"
   else
-    runcpu --config="${flags_underscored}.cfg" --tune=base --action=build "$arg"
+    runcpu --config="${flags_underscored}_${format}.cfg" --tune=base --action=build "$arg"
   fi
 
-  DEST="$curDir/../${flags_underscored}/$arg/units"
+  DEST="$curDir/../${flags_underscored}-${format}/$arg/units"
   # Create the destination directory if it doesn't exist
   mkdir -p $DEST
   rm $DEST/*
@@ -96,14 +96,14 @@ fi
 flags_underscored=${flags// /_}
 flags_underscored=${flags_underscored//-/}
 # Copy the configuration file
-cp "../myexpcfg.cfg" "./config/${flags_underscored}.cfg"
-cp "../myexpcfg.cfg" "./config/${flags_underscored}cpp14.cfg"
-cp "../myexpcfg.cfg" "./config/${flags_underscored}cpp03.cfg"
+cp "../myexpcfg.cfg" "./config/${flags_underscored}_${format}.cfg"
+cp "../myexpcfg.cfg" "./config/${flags_underscored}_${format}_cpp14.cfg"
+cp "../myexpcfg.cfg" "./config/${flags_underscored}_${format}_cpp03.cfg"
 
 
-sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|${flags} ${LLorBC}|g" ./config/"${flags_underscored}".cfg
-sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|-std=c++14 ${flags} ${LLorBC}|g" ./config/"${flags_underscored}"cpp14.cfg
-sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|-std=c++03 ${flags} ${LLorBC}|g" ./config/"${flags_underscored}"cpp03.cfg
+sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|${flags} ${LLorBC}|g" ./config/"${flags_underscored}"_"${format}".cfg
+sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|-std=c++14 ${flags} ${LLorBC}|g" ./config/"${flags_underscored}"_"${format}"_cpp14.cfg
+sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|-std=c++03 ${flags} ${LLorBC}|g" ./config/"${flags_underscored}"_"${format}"_cpp03.cfg
 
 # Iterate over each argument provided to the script
 

@@ -34,6 +34,7 @@
 #include "llvm/ADT/BreadthFirstIterator.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/ADT/SmallSet.h"
+#include "llvm/ADT/SmallVector.h"
 
 #include "llvm/Analysis/Utils/Local.h"
 #include "llvm/Transforms/Utils/Local.h"
@@ -58,12 +59,6 @@
 #include "llvm/IR/PassManager.h"
 
 #include "llvm/ADT/StringSet.h"
-
-
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/TargetRegistry.h"
 
 
 #include "llvm/ADT/SequenceAlignment.h"
@@ -2926,136 +2921,6 @@ size_t EstimateFunctionSize(Function *F, TargetTransformInfo *TTI) {
   }
   return size_t(std::ceil(size));
 }
-
-TargetTransformInfo *sizeTTIPtr;
-
-static void copyComdat(GlobalObject *Dst, const GlobalObject *Src) {
-  const Comdat *second = Src->getComdat();
-  if (!second)
-    return;
-  Comdat *DC = Dst->getParent()->getOrInsertComdat(second->getName());
-  DC->setSelectionKind(second->getSelectionKind());
-  Dst->setComdat(DC);
-}
-
-
-struct FunctionSizeEstimator {
-  TargetMachine *tm;
-  legacy::PassManager pm;
-  SmallString<512> dest_raw;
-  raw_svector_ostream* dest;
-  std::unique_ptr<llvm::Module> m = nullptr;
-  std::shared_ptr<ValueToValueMapTy> VMap =
-      std::make_shared<ValueToValueMapTy>();
-
-  FunctionSizeEstimator(const llvm::Module &module) {
-    dest = new raw_svector_ostream(dest_raw);
-    auto targetTriple = module.getTargetTriple();
-    m = llvm::CloneModule(module, *VMap,
-                          [=](const GlobalValue *gv) { return false; });
-
-    std::string error;
-    auto Target = TargetRegistry::lookupTarget(targetTriple, error);
-    if (!Target)
-      exit(-1);
-    tm = Target->createTargetMachine(targetTriple, "generic", "", {},
-                                     Reloc::PIC_);
-    tm->addPassesToEmitFile(pm, *dest, NULL, CodeGenFileType::CGFT_ObjectFile);
-  }
-
-  size_t elfSize() const {
-    // make sure we are not doing signed extension...
-    const unsigned char *buf =
-        reinterpret_cast<const unsigned char *>(dest_raw.data());
-    // parse elf...
-    // https://refspecs.linuxbase.org/elf/gabi4+/ch4.intro.html
-    // https://refspecs.linuxbase.org/elf/gabi4+/ch4.sheader.html
-    if (dest_raw.size() < 0x40 || buf[0] != 0x7f || buf[1] != 'E' ||
-        buf[2] != 'L' || buf[3] != 'F') {
-      fprintf(stderr, "not elf\n");
-      exit(-1);
-    }
-    if (buf[4] != 2) {
-      fprintf(stderr, "unsupported class\n");
-      exit(-1);
-    }
-    bool lsb = buf[5] == 1;
-
-    auto read = [&](size_t start, size_t size) {
-      uint64_t result = 0;
-      if (lsb) {
-        for (size_t i = start + size - 1; i >= start; i--)
-          result = (result << 8) | buf[i];
-      } else {
-        for (size_t i = start; i <= start + size - 1; i++)
-          result = (result << 8) | buf[i];
-      }
-      return result;
-    };
-    uint64_t section_header_offset = read(40, 8);
-    uint64_t section_header_entry_size = read(58, 2);
-    uint64_t section_header_strtab_id = read(62, 2);
-    uint64_t section_header_num_entries = read(60, 2);
-    uint64_t strtab_offset =
-        read(section_header_offset +
-                 section_header_entry_size * section_header_strtab_id + 24,
-             8);
-
-    if (section_header_offset > dest_raw.size()) {
-      auto f = fopen("foo.o", "w");
-      fwrite(dest_raw.data(), sizeof(char), dest_raw.size(), f);
-      fflush(f);
-      fclose(f);
-      printf("writing corrupted elf...\n");
-      exit(-1);
-    }
-
-    // scan for .text, .rodata.* and .eh_frame
-    auto size = 0;
-    for (int i = 1; i < section_header_num_entries; i++) {
-      auto offset =
-          strtab_offset +
-          read(section_header_offset + section_header_entry_size * i, 4);
-      if (strncmp(dest_raw.data() + offset, ".text", 5) == 0) {
-        size +=
-            read(section_header_offset + section_header_entry_size * i + 32, 8);
-      }
-    }
-    return size;
-  }
-
-  size_t estimateFunctionSize(Function *F) {
-    Function *clonedFunction;
-    auto &M = *F->getParent();
-    auto targetName = F->getName();
-
-    if (VMap->find(F) == VMap->end()) {
-      clonedFunction = Function::Create(cast<FunctionType>(F->getValueType()),
-                                        F->getLinkage(), F->getAddressSpace(),
-                                        F->getName(), m.get());
-      clonedFunction->copyAttributesFrom(F);
-      (*VMap)[F] = clonedFunction;
-    } else {
-      clonedFunction = cast<Function>((*VMap)[F]);
-    }
-    Function::arg_iterator DestI = clonedFunction->arg_begin();
-    for (const Argument &J : F->args()) {
-      DestI->setName(J.getName());
-      (*VMap)[&J] = &*DestI++;
-    }
-    SmallVector<ReturnInst *, 8> Returns; // Ignore returns cloned.
-    CloneFunctionInto(clonedFunction, F, *VMap,
-                      F->getSubprogram() != nullptr, Returns);
-    if (clonedFunction->hasPersonalityFn())
-      clonedFunction->setPersonalityFn(MapValue(F->getPersonalityFn(), *VMap));
-    copyComdat(clonedFunction, F);
-
-    dest_raw.clear();
-    pm.run(*m);
-    clonedFunction->deleteBody();
-    return elfSize();
-  }
-};
 
 #ifdef TIME_STEPS_DEBUG
 Timer TimePreProcess("Merge::Preprocess", "Merge::Preprocess");
