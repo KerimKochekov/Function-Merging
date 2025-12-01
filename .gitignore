@@ -20,3 +20,6 @@ Oz/
 Oz.zip
 cpu2017-1_0_5.iso
 spec2017/
+function-merging-pass/.vscode/
+files_from_artifact/
+pldi20ae-final/

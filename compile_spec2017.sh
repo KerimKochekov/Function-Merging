@@ -44,26 +44,31 @@ process_argument() {
   # Extract all tokens ending with .o from the last line
   o_files=$(echo "$last_line" | grep -o '[^ ]*\.o')
   for o_file in $o_files; do
-    ll_file=${o_file//\//-}
-    ll_file=${ll_file/.o/.ll}
-    echo ${ll_file}
+    LLorBC_file=${o_file//\//-}
+    LLorBC_file=${LLorBC_file/.o/.${format}}
+    echo ${LLorBC_file}
     echo ${dir}/${o_file}
-    cp ${dir}/${o_file} $DEST/${ll_file}
+    cp ${dir}/${o_file} $DEST/${LLorBC_file}
   done
   
 
-  linekd_DEST="$curDir/../${flags_underscored}/$arg/linked"
-  mkdir -p $linekd_DEST
-  rm $linekd_DEST/*
+  linked_DEST="$curDir/../${flags_underscored}-${format}/$arg/linked"
+  mkdir -p $linked_DEST
+  rm $linked_DEST/*
 
-  linked_ll=$linekd_DEST/${arg}.ll
-  linked_o=$linekd_DEST/${arg}.o
-  linked_out=$linekd_DEST/${arg}.out
+  linkedLLorBC=$linked_DEST/${arg}.${format}
+  linked_o=$linked_DEST/${arg}.o
+  linked_out=$linked_DEST/${arg}.out
+
+  isS=""
+  if [ "$format" == "ll" ]; then
+    isS="-S"
+  fi
 
   set -x
-  llvm-link-11 $DEST/*.ll -S -o ${linked_ll}
-  clang-11 -Wno-unused-command-line-argument -c ${flags} ${linked_ll} -o ${linked_o}
-  clang++-11 -z muldefs -fuse-ld=lld -fopenmp ${linked_o} -lm -o ${linked_out}
+  $LLLINK $DEST/*.${format} ${isS} -o ${linkedLLorBC}
+  $CLANG -Wno-unused-command-line-argument -c ${flags} ${linkedLLorBC} -o ${linked_o}
+  $CLANGPP -z muldefs ${linked_o} -lm -o ${linked_out}
   { set +x; } 2>/dev/null
 
 ##########################################
@@ -75,6 +80,18 @@ cd spec2017
 # Get the first two arguments
 llvm_path=$1
 flags=$2
+format=$3
+if [[ "$format" != "ll" && "$format" != "bc" ]]; then
+  echo "Error: format must be 'll' or 'bc'"
+  exit 1
+fi
+
+LLorBC="-emit-llvm -S"
+if [ "$format" == "bc" ]; then
+  LLorBC="-emit-llvm -c"
+fi
+
+
 # Replace every space in flags with _, and remove the -'s
 flags_underscored=${flags// /_}
 flags_underscored=${flags_underscored//-/}
@@ -84,13 +101,13 @@ cp "../myexpcfg.cfg" "./config/${flags_underscored}cpp14.cfg"
 cp "../myexpcfg.cfg" "./config/${flags_underscored}cpp03.cfg"
 
 
-sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} -S -emit-llvm|g; s|ZZZ|${flags} -S -emit-llvm|g" ./config/"${flags_underscored}".cfg
-sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} -S -emit-llvm|g; s|ZZZ|-std=c++14 ${flags} -S -emit-llvm|g" ./config/"${flags_underscored}"cpp14.cfg
-sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} -S -emit-llvm|g; s|ZZZ|-std=c++03 ${flags} -S -emit-llvm|g" ./config/"${flags_underscored}"cpp03.cfg
+sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|${flags} ${LLorBC}|g" ./config/"${flags_underscored}".cfg
+sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|-std=c++14 ${flags} ${LLorBC}|g" ./config/"${flags_underscored}"cpp14.cfg
+sed -i "s|XXX|${llvm_path}|g; s|YYY|${flags} ${LLorBC}|g; s|ZZZ|-std=c++03 ${flags} ${LLorBC}|g" ./config/"${flags_underscored}"cpp03.cfg
 
 # Iterate over each argument provided to the script
 
-shift 2
+shift 3
 for arg in "$@"; do
   echo "Processing $arg"
   process_argument "$arg"
