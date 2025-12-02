@@ -2910,6 +2910,7 @@ bool SimilarityHeuristicFilter(const FingerprintSimilarity &Item) {
 
 size_t EstimateFunctionSize(Function *F, TargetTransformInfo *TTI) {
   double size = 0;
+  errs() << F->size() << '\n'; // TODO: Ahmed's code
   for (Instruction &I : instructions(F)) {
     switch(I.getOpcode()) {
     //case Instruction::Alloca:
@@ -2919,9 +2920,10 @@ size_t EstimateFunctionSize(Function *F, TargetTransformInfo *TTI) {
     //case Instruction::Select:
     //  size += 1.2;
     //  break;
-    default:
-      size += TTI->getInstructionCost(
-        &I, TargetTransformInfo::TargetCostKind::TCK_CodeSize);
+    default:// TODO: Ahmed's code
+      // size += TTI->getInstructionCost(
+      //   &I, TargetTransformInfo::TargetCostKind::TCK_CodeSize);
+      size += 1;
     }
   }
   return size_t(std::ceil(size));
@@ -3265,6 +3267,11 @@ bool FunctionMergingBranchReord::runOnModule(Module &M) {
 
         unsigned SizeF12 = EstimateThunkOverhead(Result, AlwaysPreserved) +
                            EstimateFunctionSize(Result.getMergedFunction(), &TTI);
+        // TODO: Ahmed's code
+        int x = EstimateThunkOverhead(Result, AlwaysPreserved);
+        int y = EstimateFunctionSize(Result.getMergedFunction(), &TTI);
+        errs() << "x=" << x << ", y=" << y << "\n";
+
 
 //#ifdef ENABLE_DEBUG_CODE
         if (Verbose) {
