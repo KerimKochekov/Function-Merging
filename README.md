@@ -8,7 +8,7 @@ Our implementation is built on top of the PLDI 20' artifact of [SalSSA](https://
 - Root initially has the following files/folders:
   - `cpu2017-1_0_5.iso` (SPEC image)
   - `myexpcfg.cfg` (SPEC configuration file)
-  - `compile_spec2017.sh` (script to make SPEC generate `.ll` files to be used by the our/SalSSA's algorithm)
+  - `compile-spec2017.sh` (script to make SPEC generate `.ll` files to be used by the our/SalSSA's algorithm)
   - `config_build_pass.sh` to build the LLVM pass into a shared library. See below for how to use. TODO
   - `run.sh` to feed the benchmark to our implementation and SalSSA's TODO
 - `samples` has some sample files
@@ -76,10 +76,10 @@ Note: SPEC2017 has 24 distinct programs, some of them are represented twice as `
 
 ```
 
-./compile_spec2017.sh <LLVM path> <format, either ll or bc> 
+./compile-spec2017.sh <LLVM path> <format, either ll or bc> 
 
-./compile_spec2017.sh $LLVM_DIR "ll" 500.perlbench_r 502.gcc_r 505.mcf_r 508.namd_r 510.parest_r 511.povray_r 519.lbm_r 520.omnetpp_r 523.xalancbmk_r 525.x264_r 526.blender_r 531.deepsjeng_r 538.imagick_r 541.leela_r 544.nab_r 557.xz_r
-./compile_spec2017.sh $LLVM_DIR "bc" 500.perlbench_r 502.gcc_r 505.mcf_r 508.namd_r 510.parest_r 511.povray_r 519.lbm_r 520.omnetpp_r 523.xalancbmk_r 525.x264_r 526.blender_r 531.deepsjeng_r 538.imagick_r 541.leela_r 544.nab_r 557.xz_r
+./compile-spec2017.sh $LLVM_DIR "ll" 500.perlbench_r 502.gcc_r 505.mcf_r 508.namd_r 510.parest_r 511.povray_r 519.lbm_r 520.omnetpp_r 523.xalancbmk_r 525.x264_r 526.blender_r 531.deepsjeng_r 538.imagick_r 541.leela_r 544.nab_r 557.xz_r
+./compile-spec2017.sh $LLVM_DIR "bc" 500.perlbench_r 502.gcc_r 505.mcf_r 508.namd_r 510.parest_r 511.povray_r 519.lbm_r 520.omnetpp_r 523.xalancbmk_r 525.x264_r 526.blender_r 531.deepsjeng_r 538.imagick_r 541.leela_r 544.nab_r 557.xz_r
 
 ```
 
@@ -89,6 +89,10 @@ Running, say, the first of these three commands will create a folder `-O0` which
 # TODO 3. Function Merging Passes
 TODO:
 ```
+clear; ./build-llvm.sh 8; ./run.sh linked ll 500.perlbench_r
+SEE COMMENTS IN BUILD-LLVM.sh
+
+
 ./config_build_pass.sh "debug"
 // change .so to .dylib on Mac OS
 $OPT -load ./function-merging-branch-reord/build/libFunctionMergingBranchReord.so -function-merging-branch-reord  samples/input_for_hello.ll {-o <output>.ll | -disable-output}

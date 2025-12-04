@@ -51,7 +51,7 @@ format=$2
 # Remove all '-' characters from inputFolder
 inputFolder="input-${format}"
 
-explore=1
+explore=10
 
 if [ "$mode" != "units" ] && [ "$mode" != "linked" ]; then
   echo "first argument must be either 'units' or 'linked'."
@@ -88,11 +88,11 @@ for arg in "${@:3}"; do
 
 
 
-  # t0=$(date +%s%N)
-  # baseSz=$(compile_and_measure ${inputFile} "-" ${outputPath})
-  # t1=$(date +%s%N)
-  # len=$((t1 - t0))
-  # timeLlvm=$((len / 1000000))
+  t0=$(date +%s%N)
+  baseSz=$(compile_and_measure ${inputFile} "-" ${outputPath})
+  t1=$(date +%s%N)
+  len=$((t1 - t0))
+  timeLlvm=$((len / 1000000))
 
 
   t0=$(date +%s%N)
@@ -102,6 +102,7 @@ for arg in "${@:3}"; do
   # $OPT -mergefunc -func-merging-branch-reord -func-merging-branch-reord-whole-program=true -func-merging-branch-reord-explore=${explore} -func-merging-branch-reord-similarity-pruning=false -mem2reg ${inputFileMergedRets} -o ${ourOutLLorBC}
 
   # SalSSA with Branch Reordering
+  # -func-merging-branch-reord-disable-branch-reord=true
   $OPT -mergefunc -func-merging-branch-reord -func-merging-branch-reord-salssa=true -func-merging-branch-reord-whole-program=true -func-merging-branch-reord-explore=${explore} -func-merging-branch-reord-similarity-pruning=false ${inputFileMergedRets} -o ${ourOutLLorBC}
   { set +x; } 2>/dev/null
   ourSz=$(compile_and_measure ${ourOutLLorBC} "-" "${outputPath}")
@@ -125,7 +126,7 @@ for arg in "${@:3}"; do
   timeSalSSA=$((len / 1000000))
 
 
-  echo "baseSz: ${baseSz}; ourSz: ${ourSz}; SalSSASz: ${SalSSASz}, ratio: $(echo "scale=5; ${ourSz}/${SalSSASz}" | bc -l)"
+  echo "baseSz: ${baseSz}; ourSz: ${ourSz}; SalSSASz: ${SalSSASz}"
   echo "timeLlvm: ${timeLlvm}ms; timeOur: ${timeOur}ms; timeSalSSA: ${timeSalSSA}ms"
 
 
