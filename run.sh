@@ -48,10 +48,10 @@ export -f compile_and_measure
 
 mode=$1
 format=$2
+explore=$3
 # Remove all '-' characters from inputFolder
 inputFolder="input-${format}"
 
-explore=10
 
 if [ "$mode" != "units" ] && [ "$mode" != "linked" ]; then
   echo "first argument must be either 'units' or 'linked'."
@@ -62,7 +62,7 @@ outputPath="./results/${mode}_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "${outputPath}"
 
 
-for arg in "${@:3}"; do
+for arg in "${@:4}"; do
 
   bold_echo "\e[3m===Processing benchmark: ${arg}===\e[0m"
   inputPath="./${inputFolder}/${arg}"

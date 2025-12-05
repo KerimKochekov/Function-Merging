@@ -48,14 +48,6 @@
 
 // FMBR-start
 #include <iostream>
-#define MY_ASSERT(b)                                                           \
-  if (!(b)) {                                                                  \
-    std::cerr << "\033[1m\033[31mAssertion failed:\033[0m\033[1m " << #b       \
-              << std::endl;                                                    \
-    std::cerr << "\033[1mFile: " << __FILE__ << ":" << __LINE__ << "\033[0m"   \
-              << std::endl;                                                    \
-    std::exit(1);                                                              \
-  }
 // FMBR-end
 
 // #include "llvm/ADT/KeyValueCache.h"

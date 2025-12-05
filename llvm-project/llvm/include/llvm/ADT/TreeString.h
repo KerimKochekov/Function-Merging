@@ -154,7 +154,7 @@ public:
   }
 
   void confirmDepth(int limitDepth, int node) {
-    MY_ASSERT(nodes[node].getDepth() < limitDepth &&
+    assert(nodes[node].getDepth() < limitDepth &&
               "Tree depth exceeds limit!");
     for (auto child_branch : nodes[node].getBranches())
       confirmDepth(limitDepth, child_branch);
@@ -162,7 +162,7 @@ public:
       confirmDepth(limitDepth, nodes[node].getSibling());
   }
   void confirmBranchingFactor(int limitBranchFactor, int node) {
-    MY_ASSERT(nodes[node].getBranches().size() <= limitBranchFactor &&
+    assert(nodes[node].getBranches().size() <= limitBranchFactor &&
               "Branching factor exceeds limit!");
     for (auto child_branch : nodes[node].getBranches())
       confirmBranchingFactor(limitBranchFactor, child_branch);
@@ -378,39 +378,39 @@ public:
   Signature(const Signature &S) : sig(S.sig), rows(S.rows), cols(S.cols) {}
   // Mark all branches at certain depth as unvisited
   Signature allZero(int depth) {
-    MY_ASSERT(depth < rows && "depth exceeds signature size!");
+    assert(depth < rows && "depth exceeds signature size!");
     Signature S = *this;
     S.sig[depth] = 0;
     return S;
   }
   // Mark all branches at certain depth as visited
   Signature allOne(int depth) {
-    MY_ASSERT(depth < rows && "depth exceeds signature size!");
+    assert(depth < rows && "depth exceeds signature size!");
     Signature S = *this;
     S.sig[depth] = (1 << cols) - 1;
     return S;
   }
   // Mark a certain branch at certain depth as visited
   Signature set(int depth, int index) {
-    MY_ASSERT(depth < rows && "depth exceeds signature size!");
-    MY_ASSERT(index < cols && "index exceeds branch size!");
+    assert(depth < rows && "depth exceeds signature size!");
+    assert(index < cols && "index exceeds branch size!");
     Signature S = *this;
     S.sig[depth] |= (1 << index);
     return S;
   }
   // Check if a certain branch at certain depth is visited
   bool get(int depth, int index) {
-    MY_ASSERT(depth < rows && "depth exceeds signature size!");
-    MY_ASSERT(index < cols && "index exceeds branch size!");
+    assert(depth < rows && "depth exceeds signature size!");
+    assert(index < cols && "index exceeds branch size!");
     return sig[depth] >> index & 1;
   }
   int getMask() {
     int mask = 0;
     for (int i = 0; i < rows; i++) {
       mask = (mask << cols) | sig[i];
-      MY_ASSERT(sig[i] < (1 << cols) && "Signature row overflow!");
+      assert(sig[i] < (1 << cols) && "Signature row overflow!");
     }
-    MY_ASSERT(mask < (1 << (rows * cols)) && "Signature mask overflow!");
+    assert(mask < (1 << (rows * cols)) && "Signature mask overflow!");
     return mask;
   }
   void printSig() {

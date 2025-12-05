@@ -25,6 +25,44 @@
 
 #define ScoreSystemType  int
 
+
+class ScoringSystem {
+  ScoreSystemType Gap;
+  ScoreSystemType Match;
+  ScoreSystemType Mismatch;
+  bool AllowMismatch;
+public:
+  ScoringSystem(ScoreSystemType Gap, ScoreSystemType Match) {
+    this->Gap = Gap;
+    this->Match = Match;
+    this->Mismatch = std::numeric_limits<ScoreSystemType>::min();
+    this->AllowMismatch = false;
+  }
+
+  ScoringSystem(ScoreSystemType Gap, ScoreSystemType Match, ScoreSystemType Mismatch, bool AllowMismatch = true) {
+    this->Gap = Gap;
+    this->Match = Match;
+    this->Mismatch = Mismatch;
+    this->AllowMismatch = AllowMismatch;
+  }
+
+  bool getAllowMismatch() {
+    return AllowMismatch;
+  }
+
+  ScoreSystemType getMismatchPenalty() {
+    return Mismatch;
+  }
+
+  ScoreSystemType getGapPenalty() {
+    return Gap;
+  }
+
+  ScoreSystemType getMatchProfit() {
+    return Match;
+  }
+};
+
 // Store alignment result here
 template<typename Ty, Ty Blank=Ty(0)>
 class AlignedSequence {
@@ -86,45 +124,26 @@ public:
   typename std::list< Entry >::iterator begin() { return Data.begin(); }
   typename std::list< Entry >::iterator end() { return Data.end(); }
 
+  // FMBR-start
+  // TODO: continue from here, take scoring system as input
+  int score(ScoringSystem SS) {
+    int ret = 0;
+    for (auto &E : Data) {
+      if (E.hasBlank()) {
+        ret += SS.getGapPenalty();
+      } else if (E.match()) {
+        ret += SS.getMatchProfit();
+      } else {
+        ret += SS.getMismatchPenalty();
+      }
+    }
+    return ret;
+  }
+  // FMBR-end
+
 
 };
 
-class ScoringSystem {
-  ScoreSystemType Gap;
-  ScoreSystemType Match;
-  ScoreSystemType Mismatch;
-  bool AllowMismatch;
-public:
-  ScoringSystem(ScoreSystemType Gap, ScoreSystemType Match) {
-    this->Gap = Gap;
-    this->Match = Match;
-    this->Mismatch = std::numeric_limits<ScoreSystemType>::min();
-    this->AllowMismatch = false;
-  }
-
-  ScoringSystem(ScoreSystemType Gap, ScoreSystemType Match, ScoreSystemType Mismatch, bool AllowMismatch = true) {
-    this->Gap = Gap;
-    this->Match = Match;
-    this->Mismatch = Mismatch;
-    this->AllowMismatch = AllowMismatch;
-  }
-
-  bool getAllowMismatch() {
-    return AllowMismatch;
-  }
-
-  ScoreSystemType getMismatchPenalty() {
-    return Mismatch;
-  }
-
-  ScoreSystemType getGapPenalty() {
-    return Gap;
-  }
-
-  ScoreSystemType getMatchProfit() {
-    return Match;
-  }
-};
 
 template<typename ContainerType, typename Ty=typename ContainerType::value_type, Ty Blank=Ty(0), typename MatchFnTy=std::function<bool(Ty,Ty)>>
 class SequenceAligner {

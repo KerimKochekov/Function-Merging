@@ -224,8 +224,8 @@ MergeFunctions(Function *F1, Function *F2,
     return FunctionMergeResultBranchReord(F1, F2, nullptr);
   FunctionMergerBranchReord Merger(F1->getParent());
   // FMBR-start; this part does nott seem to be used
-  TreeString* F1TrSt = new TreeString(F1);
-  TreeString* F2TrSt = new TreeString(F2);
+  TreeString *F1TrSt = new TreeString(F1);
+  TreeString *F2TrSt = new TreeString(F2);
   return Merger.merge(F1, F2, F1TrSt, F2TrSt, "", Options);
   // FMBR-end
 }
@@ -2125,38 +2125,79 @@ FunctionMergeResultBranchReord FunctionMergerBranchReord::merge(
   if (!validMergePair(F1, F2))
     return ErrorResponse;
 
+  // FMBR-start
+  errs() << "\033[1m=====================================\033[0m" << "\n";
+
+  // the following 3 variables are the ones actually used for merging
   SmallVector<Value *, 8> F1Vec;
   SmallVector<Value *, 8> F2Vec;
+  AlignedSequence<Value *> AlignedSeq;
 
-  // FMBR-start
+  auto scoringSystem = ScoringSystem(-1, 2);
+
+  // first get SalSSA's linearization
+  SmallVector<Value *, 8> F1VecSalSSA;
+  SmallVector<Value *, 8> F2VecSalSSA;
+  linearize(F1, F1VecSalSSA);
+  linearize(F2, F2VecSalSSA);
+  NeedlemanWunschSA<SmallVectorImpl<Value *>> SASalSSA(
+      ScoringSystem(-1, 2), FunctionMergerBranchReord::match);
+  AlignedSequence<Value *> AlignedSeqSalSSA =
+      SASalSSA.getAlignment(F1VecSalSSA, F2VecSalSSA);
+  int valSeqAlignSalSSA = AlignedSeqSalSSA.score(scoringSystem);
+  errs() << "\033[1mSequence alignment score (SalSSA's linearization): "
+         << valSeqAlignSalSSA << "\033[0m" << "\n";
+
   if (DisableBranchReord) {
-    linearize(F1, F1Vec);
-    linearize(F2, F2Vec);
+    F1Vec = F1VecSalSSA;
+    F2Vec = F2VecSalSSA;
+    AlignedSeq = AlignedSeqSalSSA;
   } else {
-    TreeStringAlignment <std::vector <Value*>> TSA(ScoringSystem(-1, 2), FunctionMergerBranchReord::match);
-    auto verdict = TSA.getOptFlattening(F1, F2, F1TrSt, F2TrSt, F1Vec, F2Vec);
+    SmallVector<Value *, 8> F1VecOur;
+    SmallVector<Value *, 8> F2VecOur;
+    TreeStringAlignment<std::vector<Value *>> TSA(
+        scoringSystem, FunctionMergerBranchReord::match);
+    auto verdict =
+        TSA.getOptFlattening(F1, F2, F1TrSt, F2TrSt, F1VecOur, F2VecOur);
     // if we fail, fallback to linearizing
     if (verdict["failed"]) {
-      F1Vec.clear();
-      F2Vec.clear();
-      linearize(F1, F1Vec);
-      linearize(F2, F2Vec);
-    } else { // TODO: continue from here, see if our results actually causes a merge
-      errs() << "\033[1m\033[31mDonig something with our dp result!\033[0m\033[1m " << "\n";
+      errs() << "\033[1m\033[31mInstance too big, using SalSSA's "
+                "linearization..\033[0m"
+             << "\n";
+      F1Vec = F1VecSalSSA;
+      F2Vec = F2VecSalSSA;
+      AlignedSeq = AlignedSeqSalSSA;
+    } else {
+      errs() << "\033[1m\033[31mDoing something with our dp result!\033[0m"
+             << "\n";
+
+      NeedlemanWunschSA<SmallVectorImpl<Value *>> SAOur(
+          scoringSystem, FunctionMergerBranchReord::match);
+      AlignedSequence<Value *> AlignedSeqOur =
+          SAOur.getAlignment(F1VecOur, F2VecOur);
+
+      int valSeqAlignOur = AlignedSeqOur.score(scoringSystem);
+      errs() << "\033[1mSequence alignment score (Our linearization): "
+             << valSeqAlignSalSSA << "\033[0m" << "\n";
+      // larger is better
+      errs() << "Diff: " << (valSeqAlignOur - valSeqAlignSalSSA) << "\n";
+      // we keep our linearization only if it is better than SalSSA, otherwise
+      // we again fallback to SalSSA
+      if (valSeqAlignOur > valSeqAlignSalSSA) {
+        F1Vec = F1VecOur;
+        F2Vec = F2VecOur;
+        AlignedSeq = AlignedSeqOur;
+      } else {
+        errs() << "\033[1m\033[31mOur alignment is worse than SalSSA's, using "
+                  "SalSSA's linearization..\033[0m"
+               << "\n";
+        F1Vec = F1VecSalSSA;
+        F2Vec = F2VecSalSSA;
+        AlignedSeq = AlignedSeqSalSSA;
+      }
     }
   }
   // FMBR-end
-
-  AlignedSequence<Value *> AlignedSeq;
-  /*
-  switch (SAMethod) {
-    case 2: {
-*/
-  // DiagonalWindowsSA<SmallVectorImpl<Value*>>
-  // SA(ScoringSystem(-1,2),FunctionMergerBranchReord::match,256);
-  NeedlemanWunschSA<SmallVectorImpl<Value *>> SA(
-      ScoringSystem(-1, 2), FunctionMergerBranchReord::match);
-  AlignedSeq = SA.getAlignment(F1Vec, F2Vec);
 
   if (Verbose) {
     for (auto &Entry : AlignedSeq) {
@@ -2193,7 +2234,6 @@ FunctionMergeResultBranchReord FunctionMergerBranchReord::merge(
     }
   }
   // #endif
-
 
   // errs() << "Creating function type\n";
 
@@ -2241,14 +2281,7 @@ FunctionMergeResultBranchReord FunctionMergerBranchReord::merge(
 
   if (Name.empty()) {
     Name = ".m.f";
-    // if (TestFM_CompilationCostModel) Name = "_fm_tmp_";
   }
-  /*
-    if (!HasWholeProgram) {
-      Name = M->getModuleIdentifier() + std::string(".");
-    }
-    Name = Name + std::string("m.f");
-  */
   Function *MergedFunc =
       Function::Create(FTy, // GlobalValue::LinkageTypes::InternalLinkage,
                        GlobalValue::LinkageTypes::PrivateLinkage, Twine(Name),
@@ -2274,18 +2307,10 @@ FunctionMergeResultBranchReord FunctionMergerBranchReord::merge(
     ArgId++;
   }
 
-#ifdef TIME_STEPS_DEBUG
-  TimeParam.stopTimer();
-#endif
-
   // errs() << "Setting attributes\n";
   SetFunctionAttributes(F1, F2, MergedFunc);
 
   Value *IsFunc1 = FuncId;
-
-#ifdef TIME_STEPS_DEBUG
-  TimeCodeGen1.startTimer();
-#endif
 
   // errs() << "Running code generator\n";
 
@@ -2315,23 +2340,6 @@ FunctionMergeResultBranchReord FunctionMergerBranchReord::merge(
                                                  F2->getBasicBlockList());
     Gen(CG);
   }
-
-  /*
-  if (!RequiresFuncId) {
-    errs() << "Removing FuncId\n";
-
-    MergedFunc = RemoveFuncIdArg(MergedFunc, ArgsList);
-
-    for (auto &kv : ParamMap1) {
-      ParamMap1[kv.first] = kv.second - 1;
-    }
-    for (auto &kv : ParamMap2) {
-      ParamMap2[kv.first] = kv.second - 1;
-    }
-    FuncId = nullptr;
-
-  }
-  */
 
   FunctionMergeResultBranchReord Result(F1, F2, MergedFunc,
                                         RequiresUnifiedReturn);
@@ -2852,8 +2860,8 @@ bool FunctionMergingBranchReord::runOnModule(Module &M) {
     totalInstructions += F.getInstructionCount();
     TreeString *Fstr = new TreeString(&F);
     errs() << "Function: " << F.getName() << "\n";
-    MY_ASSERT(treeStringPointer.find(F.getName().str()) ==
-              treeStringPointer.end());
+    assert(treeStringPointer.find(F.getName().str()) ==
+           treeStringPointer.end());
 
     Fstr->setDepth(Fstr->root);
 
@@ -3106,7 +3114,8 @@ bool FunctionMergingBranchReord::runOnModule(Module &M) {
         MergingMaxDistance = Distance;
     }
     if (MergingDistance.size() > 0) {
-      MergingAverageDistance = MergingAverageDistance / MergingDistance.size();
+      MergingAverageDistance = MergingAverageDistance /
+    MergingDistance.size();
     }
   */
 
@@ -3187,14 +3196,15 @@ static std::string GetValueName(const Value *V) {
 }
 
 /// Create a cast instruction if needed to cast V to type DstType. We treat
-/// pointer and integer types of the same bitwidth as equivalent, so this can be
-/// used to cast them to each other where needed. The function returns the Value
-/// itself if no cast is needed, or a new CastInst instance inserted before
-/// InsertBefore. The integer type equivalent to pointers must be passed as
-/// IntPtrType (get it from DataLayout). This is guaranteed to generate no-op
-/// casts, otherwise it will assert.
-// Value *FunctionMergerBranchReord::createCastIfNeeded(Value *V, Type *DstType,
-// IRBuilder<> &Builder, const FunctionMergingOptionsBranchReord &Options) {
+/// pointer and integer types of the same bitwidth as equivalent, so this can
+/// be used to cast them to each other where needed. The function returns the
+/// Value itself if no cast is needed, or a new CastInst instance inserted
+/// before InsertBefore. The integer type equivalent to pointers must be
+/// passed as IntPtrType (get it from DataLayout). This is guaranteed to
+/// generate no-op casts, otherwise it will assert.
+// Value *FunctionMergerBranchReord::createCastIfNeeded(Value *V, Type
+// *DstType, IRBuilder<> &Builder, const FunctionMergingOptionsBranchReord
+// &Options) {
 Value *createCastIfNeeded(Value *V, Type *DstType, IRBuilder<> &Builder,
                           Type *IntPtrTy,
                           const FunctionMergingOptionsBranchReord &Options) {
@@ -3315,8 +3325,8 @@ static bool promoteMemoryToRegister(Function &F, DominatorTree &DT) {
   while (true) {
     Allocas.clear();
 
-    // Find allocas that are safe to promote, by looking at all instructions in
-    // the entry node
+    // Find allocas that are safe to promote, by looking at all instructions
+    // in the entry node
     for (BasicBlock::iterator I = BB.begin(), E = --BB.end(); I != E; ++I)
       if (AllocaInst *AI = dyn_cast<AllocaInst>(I)) // Is it an alloca?
         if (isAllocaPromotable(AI))
@@ -3477,7 +3487,7 @@ void FunctionMergerBranchReord::CodeGenerator<BlockListType>::
   }
 }
 
-////////////////////////////////////   SALSSA   ////////////////////////////////
+////////////////////////////////////   SALSSA ////////////////////////////////
 
 static bool simplifyPHIsInBlock(BasicBlock &BB) {
   std::list<PHINode *> Phis;
@@ -3931,7 +3941,8 @@ bool FunctionMergerBranchReord::SALSSACodeGen<BlockListType>::generate(
             BasicBlock *BB1 = dyn_cast<BasicBlock>(V1);
             BasicBlock *BB2 = dyn_cast<BasicBlock>(V2);
 
-            // auto CacheKey = std::pair<BasicBlock *, BasicBlock *>(BB1, BB2);
+            // auto CacheKey = std::pair<BasicBlock *, BasicBlock *>(BB1,
+            // BB2);
             BasicBlock *SelectBB =
                 BasicBlock::Create(Context, "bb.select", MergedFunc);
             IRBuilder<> BuilderBB(SelectBB);
@@ -4206,8 +4217,8 @@ bool FunctionMergerBranchReord::SALSSACodeGen<BlockListType>::generate(
             V = UndefValue::get(NewPHI->getType());
 
           // IRBuilder<> Builder(NewPredBB->getTerminator());
-          // Value *CastedV = createCastIfNeeded(V, NewPHI->getType(), Builder,
-          // IntPtrTy);
+          // Value *CastedV = createCastIfNeeded(V, NewPHI->getType(),
+          // Builder, IntPtrTy);
           NewPHI->addIncoming(V, NewPredBB);
         }
         if (FoundIndices.size() != PHI->getNumIncomingValues())
@@ -4497,7 +4508,8 @@ bool FunctionMergerBranchReord::SALSSACodeGen<BlockListType>::generate(
         Instruction *User = cast<Instruction>(UI.getUser());
 
         if (PHINode *PHI = dyn_cast<PHINode>(User)) {
-          /// TODO: make sure getOperandNo is getting the correct incoming edge
+          /// TODO: make sure getOperandNo is getting the correct incoming
+          /// edge
           IRBuilder<> Builder(
               PHI->getIncomingBlock(UI.getOperandNo())->getTerminator());
           UI.set(Builder.CreateLoad(Addr));
@@ -4574,7 +4586,8 @@ bool FunctionMergerBranchReord::SALSSACodeGen<BlockListType>::generate(
         if (OtherI) {
           InstSet.insert(OtherI);
           // errs() << "Coalescing: " << GetValueName(I->getParent()) << ":";
-          // I->dump(); errs() << "With: " << GetValueName(OtherI->getParent())
+          // I->dump(); errs() << "With: " <<
+          // GetValueName(OtherI->getParent())
           // << ":"; OtherI->dump();
         }
       };

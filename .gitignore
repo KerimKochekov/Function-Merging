@@ -32,3 +32,4 @@ spec2017/
 function-merging-pass/.vscode/
 files_from_artifact/
 pldi20ae-final/
+my_compile_commands.json
