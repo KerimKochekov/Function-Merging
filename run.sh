@@ -102,7 +102,7 @@ for arg in "${@:4}"; do
   # $OPT -mergefunc -func-merging-branch-reord -func-merging-branch-reord-whole-program=true -func-merging-branch-reord-explore=${explore} -func-merging-branch-reord-similarity-pruning=false -mem2reg ${inputFileMergedRets} -o ${ourOutLLorBC}
 
   # SalSSA with Branch Reordering
-  # -func-merging-branch-reord-disable-branch-reord=true
+  # Use this to disable branch reordering, should give the exact output as SalSSA -func-merging-branch-reord-disable-branch-reord=true
   $OPT -mergefunc -func-merging-branch-reord -func-merging-branch-reord-salssa=true -func-merging-branch-reord-whole-program=true -func-merging-branch-reord-explore=${explore} -func-merging-branch-reord-similarity-pruning=false ${inputFileMergedRets} -o ${ourOutLLorBC}
   { set +x; } 2>/dev/null
   ourSz=$(compile_and_measure ${ourOutLLorBC} "-" "${outputPath}")
