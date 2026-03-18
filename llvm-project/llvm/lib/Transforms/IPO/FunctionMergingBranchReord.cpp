@@ -3125,7 +3125,7 @@ bool FunctionMergingBranchReord::runOnModule(Module &M) {
            << 100.0 * (((double)TotalOpReorder) / ((double)TotalBinOps))
            << " %)\n";
 
-    //    errs() << "Total parameter score: " << TotalParamScore << "\n";
+  //   //    errs() << "Total parameter score: " << TotalParamScore << "\n";
 
     //    errs() << "Total number of merges: " << MergingDistance.size() <<
     //    "\n";

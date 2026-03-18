@@ -322,10 +322,9 @@ public:
         for (auto block : subtree_blocks)
           nodes[minIdxChild].addBlock(block, BlockSeq[block]);
       }
-    } else {
-      for (auto child_branch : nodes[nd].getBranches())
-        capBranchingFactor(limitBranchFactor, child_branch);
     }
+    for (auto child_branch : nodes[nd].getBranches())
+      capBranchingFactor(limitBranchFactor, child_branch);
     if (nodes[nd].getSibling() != -1)
       capBranchingFactor(limitBranchFactor, nodes[nd].getSibling());
   }

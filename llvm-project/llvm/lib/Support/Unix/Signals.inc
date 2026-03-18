@@ -345,7 +345,7 @@ static void RemoveFilesToRemove() {
   FileToRemoveList::removeAllFiles(FilesToRemove);
 }
 
-void sys::CleanupOnSignal(uintptr_t Context) {
+void llvm::sys::CleanupOnSignal(uintptr_t Context) {
   int Sig = (int)Context;
 
   if (llvm::is_contained(InfoSigs, Sig)) {
